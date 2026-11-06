@@ -1,0 +1,388 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Interactive AR Airport</title>
+
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+
+    <!-- AR.js -->
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #status {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 400px;
+            padding: 12px;
+            background: #c0392b;
+            color: white;
+            text-align: center;
+            border-radius: 10px;
+            z-index: 999;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Marker status -->
+
+    <div id="status">
+        Find the Hiro Marker
+    </div>
+
+
+    <script>
+
+        // Change ball colour when clicked
+
+        AFRAME.registerComponent('change-color', {
+
+            init: function () {
+
+                const colors = [
+                    '#FF0000',
+                    '#00FF00',
+                    '#0000FF',
+                    '#FFFF00',
+                    '#FF00FF',
+                    '#FF8C00'
+                ];
+
+                let index = 0;
+
+                this.el.addEventListener('click', () => {
+
+                    index++;
+
+                    if (index >= colors.length) {
+                        index = 0;
+                    }
+
+                    this.el.setAttribute('color', colors[index]);
+
+                });
+
+            }
+
+        });
+
+
+        //aircraft size
+
+        AFRAME.registerComponent('grow-object', {
+
+            init: function () {
+
+                this.isBig = false;
+
+                this.originalScale = this.el.object3D.scale.clone();
+
+                this.el.addEventListener('click', () => {
+
+                    this.isBig = !this.isBig;
+
+                    let multiplier = this.isBig ? 1.4 : 1;
+
+                    this.el.object3D.scale.copy(
+                        this.originalScale
+                    );
+
+                    this.el.object3D.scale.multiplyScalar(
+                        multiplier
+                    );
+
+                });
+
+            }
+
+        });
+
+
+        // Change status when marker is found or lost
+
+        AFRAME.registerComponent('marker-status', {
+
+            init: function () {
+
+                const status = document.querySelector('#status');
+
+                this.el.addEventListener('markerFound', () => {
+
+                    status.innerText = 'Hiro Marker Detected!';
+                    status.style.background = '#27ae60';
+
+                });
+
+                this.el.addEventListener('markerLost', () => {
+
+                    status.innerText = 'Marker Lost - Find Hiro Marker';
+                    status.style.background = '#c0392b';
+
+                });
+
+            }
+
+        });
+
+
+        // Check aircraft model loading
+
+        AFRAME.registerComponent('model-status', {
+
+            init: function () {
+
+                this.el.addEventListener('model-loaded', () => {
+
+                    console.log('Aircraft model loaded successfully');
+
+                });
+
+                this.el.addEventListener('model-error', () => {
+
+                    console.error('Aircraft model failed to load');
+
+                    const status = document.querySelector('#status');
+
+                    status.innerText = 'Aircraft model failed to load';
+
+                });
+
+            }
+
+        });
+
+    </script>
+
+
+    <!-- AR scene -->
+
+    <a-scene
+        embedded
+        vr-mode-ui="enabled: false"
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+    >
+
+        <!-- Hiro marker -->
+
+        <a-marker
+            preset="hiro"
+            emitevents="true"
+            marker-status
+        >
+
+            <!-- Airport floor -->
+
+            <a-plane
+                position="0 0.01 0"
+                rotation="-90 0 0"
+                width="2"
+                height="2"
+                color="#34495E">
+            </a-plane>
+
+
+            <!-- Runway -->
+
+            <a-plane
+                position="0 0.025 0"
+                rotation="-90 0 0"
+                width="0.55"
+                height="1.7"
+                color="#202A35">
+            </a-plane>
+
+
+            <!-- Runway markings -->
+
+            <a-box
+                position="0 0.04 -0.65"
+                width="0.07"
+                height="0.015"
+                depth="0.18"
+                color="#FFFFFF">
+            </a-box>
+
+            <a-box
+                position="0 0.04 -0.3"
+                width="0.07"
+                height="0.015"
+                depth="0.18"
+                color="#FFFFFF">
+            </a-box>
+
+            <a-box
+                position="0 0.04 0.4"
+                width="0.07"
+                height="0.015"
+                depth="0.18"
+                color="#FFFFFF">
+            </a-box>
+
+            <a-box
+                position="0 0.04 0.7"
+                width="0.07"
+                height="0.015"
+                depth="0.18"
+                color="#FFFFFF">
+            </a-box>
+
+
+            <!-- Aircraft model -->
+
+            <a-entity
+                position="0 0.3 0"
+                animation="
+                    property: rotation;
+                    to: 0 360 0;
+                    dur: 10000;
+                    easing: linear;
+                    loop: true">
+
+                <a-entity
+                    id="aircraft"
+                    gltf-model="url(https://polyfork.dev/cdn/narrow-body-airliner-619183.glb)"
+                    scale="0.02 0.02 0.02"
+                    class="clickable"
+                    grow-object
+                    model-status>
+                </a-entity>
+
+            </a-entity>
+
+
+            <!-- Airport hangar -->
+
+            <a-box
+                position="-0.72 0.25 -0.55"
+                width="0.45"
+                height="0.5"
+                depth="0.5"
+                color="#3498DB">
+            </a-box>
+
+            <a-box
+                position="-0.72 0.53 -0.55"
+                width="0.5"
+                height="0.08"
+                depth="0.55"
+                color="#21618C">
+            </a-box>
+
+
+            <!-- Control tower -->
+
+            <a-cylinder
+                position="0.72 0.3 -0.55"
+                radius="0.12"
+                height="0.6"
+                color="#BDC3C7">
+            </a-cylinder>
+
+            <a-box
+                position="0.72 0.63 -0.55"
+                width="0.28"
+                height="0.13"
+                depth="0.28"
+                color="#2C3E50">
+            </a-box>
+
+
+            <!-- Interactive ball -->
+
+            <a-cylinder
+                position="-0.68 0.08 0.58"
+                radius="0.13"
+                height="0.12"
+                color="#7F8C8D">
+            </a-cylinder>
+
+            <a-sphere
+                position="-0.68 0.25 0.58"
+                radius="0.15"
+                color="#E74C3C"
+                class="clickable"
+                change-color>
+            </a-sphere>
+
+
+            <!-- Animated beacon -->
+
+            <a-cylinder
+                position="0.7 0.22 0.58"
+                radius="0.06"
+                height="0.42"
+                color="#F1C40F">
+            </a-cylinder>
+
+            <a-sphere
+                position="0.7 0.5 0.58"
+                radius="0.1"
+                color="#E74C3C"
+                animation="
+                    property: position;
+                    from: 0.7 0.4 0.58;
+                    to: 0.7 0.8 0.58;
+                    dur: 1500;
+                    direction: alternate;
+                    loop: true">
+            </a-sphere>
+
+
+            <!-- Text -->
+
+            <a-text
+                value="AR AIRPORT"
+                position="0 1.15 0"
+                align="center"
+                width="3"
+                color="#FFFFFF">
+            </a-text>
+
+            <a-text
+                value="Tap Aircraft to Enlarge"
+                position="0 0.95 0.75"
+                align="center"
+                width="2"
+                color="#FFFF00">
+            </a-text>
+
+            <a-text
+                value="Tap Ball to Change Colour"
+                position="0 0.78 0.75"
+                align="center"
+                width="2"
+                color="#FFFFFF">
+            </a-text>
+
+        </a-marker>
+
+
+        <!-- Camera -->
+
+        <a-entity
+            camera
+            cursor="rayOrigin: mouse; fuse: false"
+            raycaster="objects: .clickable">
+        </a-entity>
+
+    </a-scene>
+
+</body>
+</html>
